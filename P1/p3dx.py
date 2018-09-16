@@ -81,6 +81,9 @@ if clientID!=-1:
     for i in range(1,17):
         sonarHandle.append(objectHandle(clientID,'Pioneer_p3dx_ultrasonicSensor{}'.format(i)))
 
+    laser2D = objectHandle(clientID, 'LaserScanner_2D')
+
+
     # Initializing
     groundTruthX = []
     groundTruthY = []
@@ -92,60 +95,81 @@ if clientID!=-1:
     L = 0.36205
     j = 0
 
-    start_time = time.time()
+    errorEncL, iniLeftAngle = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)
+    errorEncR, iniRightAngle = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)
+    error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+    error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+    time.sleep(0.5)
+
     try:
         while True:
-            time.sleep(0.5)
-            error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
-            error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+            time.sleep(0.3)
             if j == 0:
+                error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+                error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
                 E = [pos[0],pos[1],angle[2]]
-                iniLeftAngle = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)[1]
-                iniRightAngle = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)[1]
+                errorEncL, iniLeftAngle = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)
+                errorEncR, iniRightAngle = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)
+                start_time = time.time()
+                print(error_pos, error_angle, errorEncL, errorEncR)
             else:
+                error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+                error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+
                 angleEncLeft = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)[1]
                 angleEncRight = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)[1]
                 t = time.time() - start_time
+                #print(t)
                 start_time = time.time()
                 angleEncLeft = correctEncAngle(angleEncLeft)
                 angleEncRight = correctEncAngle(angleEncRight)
 
-
-                if (pi < iniLeftAngle < 2*pi) and (0 < angleEncLeft < pi):
-                    leftDiff = angleEncLeft+(2*pi-iniLeftAngle)
+                if 0 <= angleEncLeft <= pi and pi <= iniLeftAngle <= 2*pi or angleEncLeft > iniLeftAngle:
+                    leftDiff = pi - abs(abs(angleEncLeft - iniLeftAngle) - pi)
                 else:
-                    leftDiff = angleEncLeft-iniLeftAngle
+                    leftDiff = -(pi - abs(abs(angleEncLeft - iniLeftAngle) - pi))
 
-                if (pi < iniRightAngle < 2*pi) and (0 < angleEncRight < pi):
-                    rightDiff = angleEncRight+(2*pi-iniRightAngle)
+                if 0 <= angleEncRight <= pi and pi <= iniRightAngle <= 2*pi or angleEncRight > iniRightAngle:
+                    rightDiff = pi - abs(abs(angleEncRight - iniRightAngle) - pi)
                 else:
-                    rightDiff = angleEncRight-iniRightAngle
+                    rightDiff = -(pi - abs(abs(angleEncRight - iniRightAngle) - pi))
 
-                Vl = leftDiff*t*R
-                Vr = rightDiff*t*R
+                print(leftDiff, rightDiff)
 
+                #print('Ground = ',angle[2])
+                #print(rightDiff)
+                #print(leftDiff)
+                #print(angleEncRight, iniRightAngle, angleEncLeft, iniLeftAngle)
 
-                S = (Vl+Vr)*t/2
-                angT = (Vl-Vr)*t/(2*L)
+                Vl = R*leftDiff/t
+                Vr = R*rightDiff/t
+
+                S = ((Vr+Vl)/2)*t
+                angT = ((Vr-Vl)/(L))*t
+                #print('Delta =',  angT)
 
                 iniLeftAngle = angleEncLeft
                 iniRightAngle = angleEncRight
 
-                E = np.add(E, [S*cos(E[2]+angT/2),S*sin(E[2]+angT/2),angT/2])
+                #gyro = vrep.simxGetFloatSignal(clientID, 'gyroZ', vrep.simx_opmode_blocking)[1]
 
-                print(E)
+                E = np.add(E, [S*cos(E[2]+angT/2),S*sin(E[2]+angT/2),angT])
+                #print('Odometry = ', E[2])
+                #print()
+
+                #print('E',E)
+                #print('pos', pos)
 
             groundTruthX.append(pos[0])
             groundTruthY.append(pos[1])
             odometryX.append(E[0])
             odometryY.append(E[1])
 
-
             #print(j)
             j += 1
 
             vLeft = 1
-            vRight = 1
+            vRight = -1
 
             #vrep.simxSetJointTargetVelocity(clientID, leftMotorHandle, vLeft, vrep.simx_opmode_streaming)
             #vrep.simxSetJointTargetVelocity(clientID, rightMotorHandle, vRight, vrep.simx_opmode_streaming)
@@ -175,9 +199,9 @@ if clientID!=-1:
         vrep.simxFinish(clientID)
 
         plt.plot(groundTruthY, groundTruthX, 'b')
-        plt.plot(odometryY,odometryX,'r')
-        plt.plot(cloudPointY, cloudPointX, 'go')
-    plt.show()
+        plt.plot(odometryY,odometryX,'r-')
+        #plt.plot(cloudPointY, cloudPointX, 'go')
+        plt.show()
 
 else:
     print ('Failed connecting to remote API server')
