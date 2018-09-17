@@ -26,7 +26,7 @@ def objectHandle(clientID, objectName, operationMode=vrep.simx_opmode_oneshot_wa
         print('Connected to {}!'.format(objectName))
     return handle
 
-def localToGlobal(pos, angle, angle_s,  dist, R):
+def localToGlobal(pos, angle,  x, y):
     # Get position in global reference
     xRef = pos[0]
     yRef = pos[1]
@@ -43,9 +43,7 @@ def localToGlobal(pos, angle, angle_s,  dist, R):
             [sin_theta, cos_theta, 0],
             [0, 0, 1]]
 
-    xsensor = dist * cos(angle_s[1]) + R
-    ysensor = dist * sin(angle_s[1]) + R
-    coord = [xsensor, ysensor, 1]
+    coord = [x, y, 1]
 
     localToGlobalMatrix = np.dot(tTrans,tRot)
     resMatrix = np.dot(localToGlobalMatrix, coord)
@@ -91,6 +89,8 @@ if clientID!=-1:
     odometryY = []
     cloudPointX = []
     cloudPointY = []
+    laserX = []
+    laserY = []
     R = 0.0975
     L = 0.36205
     j = 0
@@ -134,19 +134,11 @@ if clientID!=-1:
                 else:
                     rightDiff = -(pi - abs(abs(angleEncRight - iniRightAngle) - pi))
 
-                print(leftDiff, rightDiff)
-
-                #print('Ground = ',angle[2])
-                #print(rightDiff)
-                #print(leftDiff)
-                #print(angleEncRight, iniRightAngle, angleEncLeft, iniLeftAngle)
-
                 Vl = R*leftDiff/t
                 Vr = R*rightDiff/t
 
                 S = ((Vr+Vl)/2)*t
                 angT = ((Vr-Vl)/(L))*t
-                #print('Delta =',  angT)
 
                 iniLeftAngle = angleEncLeft
                 iniRightAngle = angleEncRight
@@ -154,11 +146,6 @@ if clientID!=-1:
                 #gyro = vrep.simxGetFloatSignal(clientID, 'gyroZ', vrep.simx_opmode_blocking)[1]
 
                 E = np.add(E, [S*cos(E[2]+angT/2),S*sin(E[2]+angT/2),angT])
-                #print('Odometry = ', E[2])
-                #print()
-
-                #print('E',E)
-                #print('pos', pos)
 
             groundTruthX.append(pos[0])
             groundTruthY.append(pos[1])
@@ -187,9 +174,26 @@ if clientID!=-1:
                     dist = readSonar[2][2]
 
                     if readSonar[1] == True:
-                        cPX, cPY = localToGlobal(pos, angle, angle_s, dist, R)
+                        cPX, cPY = localToGlobal(pos, angle, dist * cos(angle_s[1]) + R, dist * sin(angle_s[1]) + R)
                         cloudPointX.append(cPX)
                         cloudPointY.append(cPY)
+
+            laser = vrep.simxUnpackFloats(vrep.simxGetStringSignal(clientID, 'Laser2D', vrep.simx_opmode_streaming)[1])
+            error_pos, pos = vrep.simxGetObjectPosition(clientID, laser2D, -1, vrep.simx_opmode_streaming)
+            error_angle, angle = vrep.simxGetObjectOrientation(clientID, laser2D, -1, vrep.simx_opmode_streaming)
+            error_angle_s, angle_s = vrep.simxGetObjectOrientation(clientID, laser2D, p3dx, vrep.simx_opmode_streaming)
+
+            laserSplit = []
+            i = 0
+            for i in range(int(np.shape(laser)[0]/3)):
+                print(i,i+3)
+                laserSplit.append(laser[i:i+3])
+                i += 3
+
+            for l in laserSplit:
+                cPX, cPY = localToGlobal(pos, angle, l[2], l[1])
+                laserX.append(l[1])
+                laserY.append(-l[2])
 
     except KeyboardInterrupt:
         # stop the simulation:
@@ -201,6 +205,7 @@ if clientID!=-1:
         plt.plot(groundTruthY, groundTruthX, 'b')
         plt.plot(odometryY,odometryX,'r-')
         #plt.plot(cloudPointY, cloudPointX, 'go')
+        plt.plot(laserY, laserX, 'go')
         plt.show()
 
 else:
