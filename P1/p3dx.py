@@ -26,11 +26,11 @@ def objectHandle(clientID, objectName, operationMode=vrep.simx_opmode_oneshot_wa
         print('Connected to {}!'.format(objectName))
     return handle
 
-def localToGlobal(pos, angle,  x, y):
+def localToGlobal(xObject, yObject, theta, x, y):
     # Get position in global reference
-    xRef = pos[0]
-    yRef = pos[1]
-    thetaRef = angle[2]
+    xRef = xObject
+    yRef = yObject
+    thetaRef = theta
 
     tTrans = [[1, 0, xRef],
               [0, 1, yRef],
@@ -111,10 +111,11 @@ if clientID!=-1:
                 errorEncL, iniLeftAngle = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)
                 errorEncR, iniRightAngle = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)
                 start_time = time.time()
-                print(error_pos, error_angle, errorEncL, errorEncR)
+                print(angle)
             else:
                 error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
                 error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+                print(angle)
 
                 angleEncLeft = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)[1]
                 angleEncRight = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)[1]
@@ -165,7 +166,6 @@ if clientID!=-1:
                 error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
                 error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
                 error_angle_s, angle_s = vrep.simxGetObjectOrientation(clientID, sH, p3dx, vrep.simx_opmode_streaming)
-
                 readSonar = vrep.simxReadProximitySensor(clientID, sH, vrep.simx_opmode_streaming)
 
                 if error_pos != 0 and error_angle != 0:
@@ -174,26 +174,23 @@ if clientID!=-1:
                     dist = readSonar[2][2]
 
                     if readSonar[1] == True:
-                        cPX, cPY = localToGlobal(pos, angle, dist * cos(angle_s[1]) + R, dist * sin(angle_s[1]) + R)
+                        cPX, cPY = localToGlobal(pos[0], pos[1], angle[2],
+                                                 dist * cos(angle_s[1]) + R, dist * sin(angle_s[1]) + R)
                         cloudPointX.append(cPX)
                         cloudPointY.append(cPY)
 
             laser = vrep.simxUnpackFloats(vrep.simxGetStringSignal(clientID, 'Laser2D', vrep.simx_opmode_streaming)[1])
-            error_pos, pos = vrep.simxGetObjectPosition(clientID, laser2D, -1, vrep.simx_opmode_streaming)
-            error_angle, angle = vrep.simxGetObjectOrientation(clientID, laser2D, -1, vrep.simx_opmode_streaming)
-            error_angle_s, angle_s = vrep.simxGetObjectOrientation(clientID, laser2D, p3dx, vrep.simx_opmode_streaming)
+            error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
+            error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
 
-            laserSplit = []
             i = 0
-            for i in range(int(np.shape(laser)[0]/3)):
-                print(i,i+3)
-                laserSplit.append(laser[i:i+3])
-                i += 3
+            while (i < int(np.shape(laser)[0])//3):
+                cPX, cPY = localToGlobal(pos[0], pos[1], angle[2], laser[(i*3)+1], laser[(i*3)+2])
+                laserX.append(cPX)
+                laserY.append(cPY)
+                i += 1
+            print(i)
 
-            for l in laserSplit:
-                cPX, cPY = localToGlobal(pos, angle, l[2], l[1])
-                laserX.append(l[1])
-                laserY.append(-l[2])
 
     except KeyboardInterrupt:
         # stop the simulation:
