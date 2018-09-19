@@ -39,7 +39,7 @@
  \IEEEauthorblockN{Osvaldo Xavier Dias Junior e Eduardo de Oliveira Moraes\,\IEEEauthorrefmark{1}}
  \IEEEauthorblockA{\IEEEauthorrefmark{1}%
                    Ciência da Computação - Pós-Graduação \\
-                   E-mail: osvaldoxdjrs@gmail.unicamp.br\\eduardomoraesmail@gmail.com }
+                   E-mail: osvaldoxdjr@gmail.unicamp.br\\eduardomoraesmail@gmail.com }
 }
 
 %%*****************************************************************************
@@ -55,7 +55,7 @@ Este relatório trata o projeto 1 (P1) da disciplina de robótica móvel, o trabalh
 
 % Indique três palavras-chave que descrevem o trabalho
 \begin{IEEEkeywords}
- Palavras-chave
+V-REP, P3-DX, Robô, odometria, extração de características, transformada de Hough e ground truth
 \end{IEEEkeywords}
 
 %%*****************************************************************************
@@ -91,7 +91,7 @@ z
 \Delta_s cos(\theta+\frac{\Delta \theta}{2}) \\
 \Delta_s sen(\theta+\frac{\Delta \theta}{2}) \\
 \Delta \theta
-\end{bmatrix}_0
+\end{bmatrix}
 \end{align}
 \end{equation}
 
@@ -120,7 +120,7 @@ T_{trans} = \begin{bmatrix}
 T_{trans} = \begin{bmatrix}
 cos(\alpha)	& -sen(\alpha)  & 0 \\ 
 sen(\alpha)	& cos(\alpha)  & 0\\ 
-sen(\alpha)	& 0 & 1
+0	& 0 & 1
 \end{bmatrix}
 \end{equation}
 
@@ -128,8 +128,8 @@ sen(\alpha)	& 0 & 1
 Pos_I = T_{trans}*T_{rot}*Pos_r
 \end{equation}
 
-A equação \ref{eq:mudvar} é utilizada para rotacionar e transladar o ponto de um referencial local para o global, respeitando princípio de não comutatividade.
-Para extrair características do mapeamento de uma cena é possível utilizar a transformada de Hough que é uma técnica matemática que realiza a detecção de formas geométricas em imagens digitais, no caso específico de um mapa 2D seria a detecção de linhas.\\
+Onde $\Delta x$ representa a variação da coordenadas x dos referenciais, $\Delta y$ representa a variação da coordenadas y dos referenciais e $\alpha$ representa o ângulo entre os refenciais.  A equação \ref{eq:mudvar} é utilizada para rotacionar e transladar o ponto de um referencial local para o global, respeitando princípio de não comutatividade.
+Para extrair características do mapeamento de uma cena é possível utilizar a transformada de Hough que é uma técnica matemática que realiza a detecção de formas geométricas em imagens digitais, no caso específico de um mapa 2D seria a detecção de linhas a partir de uma nuvem de pontos.\\
 A partir daqui este trabalho encontra-se organizado da seguinte forma: a seção 2 apresenta "Trabalho Proposto". A seção 3 descreve "Materiais e Métodos". Os "Resultados e Discussão" são apresentados na seção 4, e as "Conclusões" são apresentadas na seção 5.
 
 
@@ -157,8 +157,8 @@ As soluções propostas foram baseadas em mapeamento de cena utilizando sonar e la
 
 \begin{enumerate}
 	\item Ambientação com ambiente de simulação
-	\item Localização ground truth
-	\item Localização odometria
+	\item Localização via ground truth
+	\item Localização via odometria
 	\item Mapeamento através de sonar
 	\item Mapeamento através de laser 2D
 	\item Extração de característica
@@ -167,20 +167,13 @@ As soluções propostas foram baseadas em mapeamento de cena utilizando sonar e la
 
 \section{Materiais e Métodos}
 
-Todo trabalho deve ser submetido a algum tipo de teste para que possa ser avaliado. Na verdade, buscamos aqui uma validação com um caráter mais científico de seu trabalho (validação de hipótese). Busca-se identificar quais os seus pontos fortes e fracos. Nesta seção você deve descrever claramente quais foram e como foram conduzidos os testes, quais os materiais e as metodologias empregadas.
-
-Uma figura pode ser posicionada em qualquer lugar no texto, como no exemplo seguinte da Figura~\ref{fig:fig1}.
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=1\hsize]{figuras/pipeline.png}
-\caption{Um exemplo de figura.}
-\label{fig:fig1}
-\end{figure}
-
-Use o comando ``cite'' para citar itens na sua lista de
-referências através dos seus rótulos. Exemplo: \cite{Rowling:1997}\cite{Reynolds:2009a}\cite{Michalowski:2006}.
-
+Para desenvolver o trabalho foi utilizado o remote API do V-REP em Python, baseado em uma comunicação cliente-servidor. O robô utilizado na simulação foi o P3-DX, um robô diferencial que, portanto, possui duas rodas com um motor em cada uma delas e 16 sonares já pré-instalados. Este robô possui um childscript em Lua que executa algumas tarefas, entre elas a navegação através do algorítmo de Braitenben. Este código nativo é capaz fazer a navegação do robô e evitar colisões, considerando a distância medida pelo sonar e ativando os motores das rodas de forma ponderada, esta navegação foi adotada para a execução das simulações. Foi inserido uma linha de código no servidor para que este ficasse esperando a conexão com o cliente.\\
+Já no script do cliente, todo desenvolvido em Python, foi criada a lógica para leitura dos sensores e interpretação dos dados. Porém, antes do desenvolvimento foi feita a inserção de mais dois sensores além daqueles originais: um laser 2D no topo do robô e no mesmo referencial x e y deste, além de um giroscópio exatamente no mesmo referencial.\\
+No código Python, para atuar nos objetos da cena foi necesário coletar os handles (referências) do robô, rodas e sensores.
+A localização ground truth é observada diretamente do cliente, não sendo necessário nenhum cálculo para tal. Entretanto, para cômputo da odometria foram utilizadas as equações \ref{eq:odometry}, \ref{eq:deltas} e \ref{eq:deltatheta}. Em linhas gerais, esses cálculos foram implementados usando listas que acumulavam os valores que tinham que ser adicionados as coordenadas x, y e $\theta$, cabe salientar que foi necessário realizar a conversão dos ângulos dos encoders dos motores para representar valores entre 0 e 2$\pi$, ao invés $\pi$ e -$\pi$. Foi tentado utilizar um giroscópio para melhorar o odometria, porém devido a possivelmente um problema da comunicação cliente-servidor os valores apresentados do giroscópio mostraram-se pouco consistentes. A odometria foi compara com o ground truth verificar se os cálculos estavam sendo obtidos de forma coerente.\\
+O mapeamento através de numvem de pontos foi feito utilizando-se dois tipos de sensores e duas lógicas de cálculo. Foram utilizados os sensores sonar e laser, e para cálcular o valor da posição absoluta, no referencial inercial, foi utilizado como base o ground truth e a odometria; sendo que as mudança de coordenada local para global foram feitas com as equações \ref{eq:ttrans}, \ref{eq:trot} e \ref{eq:mudvar}. Os mapas obtidos nas 4 configurações diferentes foram comparados com a cena do simulador.\\\\
+\bold{COLOCAR SOBRE EXTRAÇÃO DE CARACTERISTICAS}
+\\
 
 \section{Resultados e Discussão}
 
