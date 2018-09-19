@@ -17,6 +17,48 @@ except:
     print ('--------------------------------------------------------------')
     print ('')
 
+def charExtract():
+    pass
+    '''
+    # valor mínimo da nuvem de pontos do laser2D
+    minimumX = abs(min(laserX))
+    minimumY = abs(min(laserY))
+
+    # deslocando os números negativos
+    arX = np.array(laserX) + minimumX
+    arY = np.array(laserY) + minimumY
+
+    # convertendo os números para inteiros
+    def roof(x):
+        return int(1000 * x)
+
+    arXmap = list(map(roof, arX))
+    arYmap = list(map(roof, arY))
+
+    # representando o mapa em forma de matriz binária
+    _2dMap = np.zeros([max(arXmap) + 1, max(arYmap) + 1], dtype=int)
+
+    for i in arXmap:
+        for j in arYmap:
+            _2dMap[i][j] = 255
+
+    # extraíndo bordas
+    edges = cv2.Canny(_2dMap, 50, 150, apertureSize=3)
+
+    # hough
+    lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
+    for rho, theta in lines[0]:
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a * rho
+        y0 = b * rho
+        x1 = int(x0 + 1000 * (-b))
+        y1 = int(y0 + 1000 * (a))
+        x2 = int(x0 - 1000 * (-b))
+        y2 = int(y0 - 1000 * (a))
+
+        cv2.line(_2dMap, (x1, y1), (x2, y2), (0, 0, 255), 2)'''
+
 def objectHandle(clientID, objectName, operationMode=vrep.simx_opmode_oneshot_wait):
     # Get Handle
     error, handle = vrep.simxGetObjectHandle(clientID,objectName,operationMode)
@@ -199,10 +241,13 @@ if clientID!=-1:
         # Now close the connection to V-REP:
         vrep.simxFinish(clientID)
 
-        plt.plot(groundTruthY, groundTruthX, 'b')
-        plt.plot(odometryY,odometryX,'r-')
-        #plt.plot(cloudPointY, cloudPointX, 'go')
-        plt.plot(laserY, laserX, 'go')
+
+        plt.plot(groundTruthX, groundTruthY,'b')
+        plt.plot(odometryX,odometryY,'r-')
+        #plt.plot(cloudPointX, cloudPointY,  'go')
+        plt.plot(laserX,laserY,  'go')
+        plt.ylabel('X [m]')
+        plt.xlabel('Y [m]')
         plt.show()
 
 else:
