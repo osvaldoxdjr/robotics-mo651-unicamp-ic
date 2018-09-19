@@ -129,10 +129,14 @@ if clientID!=-1:
     groundTruthY = []
     odometryX = []
     odometryY = []
-    cloudPointX = []
-    cloudPointY = []
-    laserX = []
-    laserY = []
+    cloudPointXGT = []
+    cloudPointYGT = []
+    cloudPointXodo= []
+    cloudPointYodo = []
+    laserXGT = []
+    laserYGT = []
+    laserXodo = []
+    laserYodo = []
     R = 0.0975
     L = 0.36205
     j = 0
@@ -153,11 +157,9 @@ if clientID!=-1:
                 errorEncL, iniLeftAngle = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)
                 errorEncR, iniRightAngle = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)
                 start_time = time.time()
-                print(angle)
             else:
                 error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
                 error_angle, angle = vrep.simxGetObjectOrientation(clientID, p3dx, -1, vrep.simx_opmode_streaming)
-                print(angle)
 
                 angleEncLeft = vrep.simxGetJointPosition(clientID, leftMotorHandle, vrep.simx_opmode_streaming)[1]
                 angleEncRight = vrep.simxGetJointPosition(clientID, rightMotorHandle, vrep.simx_opmode_streaming)[1]
@@ -218,8 +220,13 @@ if clientID!=-1:
                     if readSonar[1] == True:
                         cPX, cPY = localToGlobal(pos[0], pos[1], angle[2],
                                                  dist * cos(angle_s[1]) + R, dist * sin(angle_s[1]) + R)
-                        cloudPointX.append(cPX)
-                        cloudPointY.append(cPY)
+                        cloudPointXGT.append(cPX)
+                        cloudPointYGT.append(cPY)
+                        cPX, cPY = localToGlobal(E[0], E[1], E[2],
+                                                 dist * cos(angle_s[1]) + R, dist * sin(angle_s[1]) + R)
+                        cloudPointXodo.append(cPX)
+                        cloudPointYodo.append(cPY)
+
 
             laser = vrep.simxUnpackFloats(vrep.simxGetStringSignal(clientID, 'Laser2D', vrep.simx_opmode_streaming)[1])
             error_pos, pos = vrep.simxGetObjectPosition(clientID, p3dx, -1, vrep.simx_opmode_streaming)
@@ -228,10 +235,12 @@ if clientID!=-1:
             i = 0
             while (i < int(np.shape(laser)[0])//3):
                 cPX, cPY = localToGlobal(pos[0], pos[1], angle[2], laser[(i*3)+1], laser[(i*3)+2])
-                laserX.append(cPX)
-                laserY.append(cPY)
+                laserXGT.append(cPX)
+                laserYGT.append(cPY)
+                cPX, cPY = localToGlobal(E[0], E[1], E[2], laser[(i*3)+1], laser[(i*3)+2])
+                laserXodo.append(cPX)
+                laserYodo.append(cPY)
                 i += 1
-            print(i)
 
 
     except KeyboardInterrupt:
@@ -241,13 +250,32 @@ if clientID!=-1:
         # Now close the connection to V-REP:
         vrep.simxFinish(clientID)
 
+        plt.figure('Laser 2D - Ground Truth')
+        plt.plot(groundTruthX, groundTruthY,'b', label = 'Ground Truth')
+        plt.plot(odometryX,odometryY,'r-', label = 'Odometria')
+        plt.plot(laserXGT,laserYGT,  'go', label = 'Mapa')
+        plt.legend()
+        plt.show()
 
-        plt.plot(groundTruthX, groundTruthY,'b')
-        plt.plot(odometryX,odometryY,'r-')
-        #plt.plot(cloudPointX, cloudPointY,  'go')
-        plt.plot(laserX,laserY,  'go')
-        plt.ylabel('X [m]')
-        plt.xlabel('Y [m]')
+        plt.figure('Sonar - Ground Truth')
+        plt.plot(groundTruthX, groundTruthY,'b', label = 'Ground Truth')
+        plt.plot(odometryX,odometryY,'r-', label = 'Odometria')
+        plt.plot(cloudPointXGT, cloudPointYGT,  'go', label = 'Mapa')
+        plt.legend()
+        plt.show()
+
+        plt.figure('Laser 2D - Odometria')
+        plt.plot(groundTruthX, groundTruthY,'b', label = 'Ground Truth')
+        plt.plot(odometryX,odometryY,'r-', label = 'Odometria')
+        plt.plot(laserXodo,laserYodo,  'go', label = 'Mapa')
+        plt.legend()
+        plt.show()
+
+        plt.figure('Sonar - Odometria')
+        plt.plot(groundTruthX, groundTruthY,'b', label = 'Ground Truth')
+        plt.plot(odometryX,odometryY,'r-', label = 'Odometria')
+        plt.plot(cloudPointXodo, cloudPointYodo,  'go', label = 'Mapa')
+        plt.legend()
         plt.show()
 
 else:
