@@ -1,0 +1,214 @@
+%% Adaptado de 
+%% http://www.ctan.org/tex-archive/macros/latex/contrib/IEEEtran/
+%% Traduzido para o congresso de IC da USP
+%%*****************************************************************************
+% Não modificar
+
+\documentclass[twoside,conference,a4paper]{IEEEtran}
+
+%******************************************************************************
+% Não modificar
+\usepackage{IEEEtsup} % Definições complementares e modificações.
+\usepackage[latin1]{inputenc} % Disponibiliza acentos.
+\usepackage[english,brazil]{babel}
+%% Disponibiliza Inglês e Português do Brasil.
+\usepackage{latexsym,amsfonts,amssymb} % Disponibiliza fontes adicionais.
+\usepackage{theorem} 
+\usepackage[cmex10]{amsmath} % Pacote matemático básico 
+\usepackage{url} 
+%\usepackage[portuges,brazil,english]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
+\usepackage[tight,footnotesize]{subfigure} 
+%\usepackage[noadjust]{cite} % Disponibiliza melhorias em citações.
+%%*****************************************************************************
+
+\begin{document}
+\selectlanguage{brazil}
+\renewcommand{\IEEEkeywordsname}{Palavras-chave}
+
+%%*****************************************************************************
+
+\urlstyle{tt}
+% Indicar o nome do autor e o curso/nível (grad-mestrado-doutorado-especial)
+\title{Projeto 1 - Robótica Móvel}
+\author{%
+ \IEEEauthorblockN{Osvaldo Xavier Dias Junior e Eduardo de Oliveira Moraes\,\IEEEauthorrefmark{1}}
+ \IEEEauthorblockA{\IEEEauthorrefmark{1}%
+                   Ciência da Computação - Pós-Graduação \\
+                   E-mail: osvaldoxdjrs@gmail.unicamp.br\\eduardomoraesmail@gmail.com }
+}
+
+%%*****************************************************************************
+
+\maketitle
+
+%%*****************************************************************************
+% Resumo do trabalho
+\begin{abstract}
+Este relatório trata o projeto 1 (P1) da disciplina de robótica móvel, o trabalho é sobre o simulador robótico V-REP, um sistema de cômputo da odometria e extração de características para o robô Pioneer P3-DX, isso é relevante pois abrange os conceitos básicos sobre simualação de robôs em um ambiente de software. Utilizou-se rotinas em Python para comunicação com o simulador V-REP, com o propósito de efetuar a localização do robô e o mapeamento da cena. Foram testados, durante o desenvolvimento, sensores como encoder para odometria, e sonar e laser 2D para mapeamento, os resultados obtidos foram bons, com exceção da odometria para longas distâncias percorridas pelo robô. A parte de extração de características ficou por conta da aplicação das transformadas de Hough, entretando sem êxito na sua aplicação. O desenvolvimento do projeto apresentou uma curva de aprendizado lenta, devido a falta de fluência no simulador, impactando no tocante as metas propostas inicialmente do projeto.
+
+\end{abstract}
+
+% Indique três palavras-chave que descrevem o trabalho
+\begin{IEEEkeywords}
+ Palavras-chave
+\end{IEEEkeywords}
+
+%%*****************************************************************************
+% Modifique as seções de acordo com o seu projeto
+
+\section{Introdução}
+
+O desafio de desenvolver robôs é notoriamente grande e complexo, devido a interdisciplinaridade de assuntos que envolvem, majoritariamente, engenharia. Posta essa grande complexidade, sabe-se que para confeccionar um robô é requerido um determinado custo que em alguns casos podem ser muito elevados. Logo, existem softwares que são capazes de fazer a simulação de robôs, como por exemplo o V-REP que foi utilizado nesse projeto 1.\\
+O V-REP, em linhas gerais, é um simulador no qual faz-se a escolha de uma dinâmica de operação, e também pode-se colocar objetos como sensores, atuadores, robôs, anteparos, e etc. na cena (ambiente simulado no qual um protótipo de robô será inserido). Uma das formas tomar ações é através de comunicação remota com os objetos da cena utilizando-se de diferentes linguagens de programação como C/C++, Python, Java, Matlab, Octave e Lua, além disto os objetos podem possuir rotinas de simulação, ou childscripts, que estão codificadas em Lua; estas rotinas são pré-programações dos objetos para tomar determinadas ações sem que seja preciso o usuário do objeto desenvolver.
+
+\begin{figure}[!htbp]
+	\centering
+	\includegraphics[width=1\hsize]{figuras/vrep.png}
+	\caption{Ambiente de simulação V-REP}
+	\label{fig:vrep}
+\end{figure}
+
+Um ponto fundamental quando se deseja desenvolver um robô móvel é localização, pois esta é a premissa básica para que o robô possa se mover de um ponto a outro, sem interação humana. A localização consiste de ter conhecimento de onde o robô está localizado com referência ao referencial da cena simulada, dada a importância desse tópico existe um ramo da robótica que estuda uma parte desse problema que é a odometria. Esta consiste no estudo da posição do robô através do deslocamento incremental de sua mecânica de locomoção, por exemplo através do cômputo da movimentação do robô através da velocidade angular de rodas. Para o robo diferencial (robô que movimenta-se através de duas rodas montadas num eixo comum e controladas por motores independentes, um para cada roda) têm que o cálculo da odometria é dado por:
+\\
+\begin{equation} \label{eq:odometry}
+\begin{align}
+\begin{bmatrix}
+x \\
+y \\
+z
+\end{bmatrix}_t &= \begin{bmatrix}
+x \\
+y \\
+z
+\end{bmatrix}_0
+\sum_{k=1}^{t}
+\begin{bmatrix}
+\Delta_s cos(\theta+\frac{\Delta \theta}{2}) \\
+\Delta_s sen(\theta+\frac{\Delta \theta}{2}) \\
+\Delta \theta
+\end{bmatrix}_0
+\end{align}
+\end{equation}
+
+\begin{equation} \label{eq:deltas}
+\Delta_s = \frac{R(Vr+Vl)}{2} \Delta_t
+\end{equation}
+
+\begin{equation} \label{eq:deltatheta}
+\Delta_\theta = \frac{R(Vr-Vl)}{2L} \Delta_t
+\end{equation}
+\\
+Onde x, y e z são as coordenadas; $\Delta_s$ é a distância percorrida; $\Delta_\theta$ é a a variação angular; R é o raio das rodas; L é a distância entre as rodas; Vr é a velocidade da roda direita e Vl é a velocidade da roda esquerda.\\
+Com as inforamções acima é possível estimar a trajetória do robô ao longo do tempo, porém nota-se pela somatória temporal que existe um acúmulo de erro ao longo do tempo que pode resultar em uma trajetória diferente daquela indicada pelo ground truth.\\
+O mapeamento da cena consiste da elaboração de um mapa do ambiente simulado, e está intimamente atrelado a movimentação do robô, pois através daquele é possível movimentar o robô com maior eficiência evitando assim obstáculos e executar deslocamentos mais rapidamente, uma vez que, sabe-se exatamente a trajetória a ser percorrida. O mapeamento pode ser realizado utilizando-se diversos sensores como sonares, radares, lasers, cameras e etc. ou também utilizando um sub conjunto dos componentes citados anteriormente.\\
+Contudo, uma questão fundamental em localização, odometria e mapeamento é o comparativo entre referencial inercial ou referencial global e referencial de um objeto qualquer, quando o robô realiza qualquer medição que envolva posicionamento em cena, é preciso sempre tomar a precaução de trabalhar com coordenadas em referencial inercial. Uma ferramenta para solucionar esse problema é utilizar-se de conceitos de algebra linear - matrizes de rotação e translação.
+
+\begin{equation} \label{eq:ttrans}
+T_{trans} = \begin{bmatrix}
+1	& 0  & \Delta x \\ 
+0	& 1  & \Delta y\\ 
+0	& 0 & 1
+\end{bmatrix}
+\end{equation}
+
+\begin{equation} \label{eq:trot}
+T_{trans} = \begin{bmatrix}
+cos(\alpha)	& -sen(\alpha)  & 0 \\ 
+sen(\alpha)	& cos(\alpha)  & 0\\ 
+sen(\alpha)	& 0 & 1
+\end{bmatrix}
+\end{equation}
+
+\begin{equation} \label{eq:mudvar}
+Pos_I = T_{trans}*T_{rot}*Pos_r
+\end{equation}
+
+A equação \ref{eq:mudvar} é utilizada para rotacionar e transladar o ponto de um referencial local para o global, respeitando princípio de não comutatividade.
+Para extrair características do mapeamento de uma cena é possível utilizar a transformada de Hough que é uma técnica matemática que realiza a detecção de formas geométricas em imagens digitais, no caso específico de um mapa 2D seria a detecção de linhas.\\
+A partir daqui este trabalho encontra-se organizado da seguinte forma: a seção 2 apresenta "Trabalho Proposto". A seção 3 descreve "Materiais e Métodos". Os "Resultados e Discussão" são apresentados na seção 4, e as "Conclusões" são apresentadas na seção 5.
+
+
+%\section{Seções}
+
+%Utilize outras seções e subseções para abordar o problema. 
+
+%\subsection{Uma subseção}
+
+%Se precisar, você pode usar listas, tais como
+
+%\begin{itemize}
+% \item Item 1
+% \item Item 2
+%\end{itemize}
+%ou
+%\begin{enumerate}
+% \item Item 1
+% \item Item 2
+%\end{enumerate}
+
+\section{Trabalho Proposto}
+
+As soluções propostas foram baseadas em mapeamento de cena utilizando sonar e laser, cálculo de odometria utilizando o enconder das rodas laterais do robô e extração de característica utilizando transformada de Hough. Segue a lista tarefas executadas, em sequência cronológica, durante o desenvolvimento:
+
+\begin{enumerate}
+	\item Ambientação com ambiente de simulação
+	\item Localização ground truth
+	\item Localização odometria
+	\item Mapeamento através de sonar
+	\item Mapeamento através de laser 2D
+	\item Extração de característica
+	
+\end{enumerate}
+
+\section{Materiais e Métodos}
+
+Todo trabalho deve ser submetido a algum tipo de teste para que possa ser avaliado. Na verdade, buscamos aqui uma validação com um caráter mais científico de seu trabalho (validação de hipótese). Busca-se identificar quais os seus pontos fortes e fracos. Nesta seção você deve descrever claramente quais foram e como foram conduzidos os testes, quais os materiais e as metodologias empregadas.
+
+Uma figura pode ser posicionada em qualquer lugar no texto, como no exemplo seguinte da Figura~\ref{fig:fig1}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1\hsize]{figuras/pipeline.png}
+\caption{Um exemplo de figura.}
+\label{fig:fig1}
+\end{figure}
+
+Use o comando ``cite'' para citar itens na sua lista de
+referências através dos seus rótulos. Exemplo: \cite{Rowling:1997}\cite{Reynolds:2009a}\cite{Michalowski:2006}.
+
+
+\section{Resultados e Discussão}
+
+Nesta seção você deve apresentar claramente os resultados obtidos para os testes efetuados. Procure organizar os dados utilizando uma linguagem científica. Algumas opções são o uso de tabelas e gráficos, para que a compreensão seja fácil e rápida. 
+
+\section{Conclusões}
+
+Nesta seção, faça uma análise geral de seu trabalho, levando em conta todo o processo de desenvolvimento e os resultados. Quais os seus pontos fortes? Quais os seus pontos fracos? Quais aspectos de sua metodologia de trabalho foram positivas? Quais foram negativas? O que você recomendaria (ou não recomendaria) a outras pessoas que estejam realizando trabalhos similares aos seus? 
+
+
+%******************************************************************************
+% Referências - Definidas no arquivo Relatorio.bib
+ +-------------+
+
+\bibliographystyle{IEEEtran}
+
+\bibliography{Relatorio}
+
+
+%******************************************************************************
+
+\vspace{20ex}
+
+\section*{\Large \textbf{Submissão}}
+
+Seu trabalho deve ser submetido via moodle em conjunto com o código fonte.
+
+\vspace{3ex}
+
+
+\end{document}
