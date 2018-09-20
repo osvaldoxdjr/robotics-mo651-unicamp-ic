@@ -21,18 +21,8 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
-\bibitem{Rowling:1997}
-J.~K. Rowling, \emph{Harry Potter and the Philosophers Stone}, 1st~ed.\hskip
-  1em plus 0.5em minus 0.4em\relax London: Bloomsbury Publishing, 1997.
-
-\bibitem{Reynolds:2009a}
-J.~H. Reynolds and D.~J. Heeger, ``{The Normalization Model of Attention},''
-  \emph{Neuron Review}, vol.~61, no.~2, pp. 168--185, 2009.
-
-\bibitem{Michalowski:2006}
-M.~P. Michalowski and R.~Simmons, ``Multimodal person tracking and attention
-  classification,'' in \emph{Proceedings of the 1st ACM SIGCHI/SIGART
-  Conference on Human-robot Interaction}, ser. HRI 06.\hskip 1em plus 0.5em
-  minus 0.4em\relax New York, NY, USA: ACM, 2006, pp. 347--358.
+\bibitem{Siegwart:2004}
+R. ~Siegwart and Illah ~R. Nourbakhsh \emph{Autonomous Mobile Robots}, 1st~ed.\hskip
+  1em plus 0.5em minus 0.4em\relax Massachusetts Institute of Technology, 2004
 
 \end{thebibliography}
