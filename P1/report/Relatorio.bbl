@@ -25,4 +25,8 @@
 R. ~Siegwart and Illah ~R. Nourbakhsh \emph{Autonomous Mobile Robots}, 1st~ed.\hskip
   1em plus 0.5em minus 0.4em\relax Massachusetts Institute of Technology, 2004
 
+\bibitem{Siegwart:2004}
+Matas, J. and Galambos, C. and Kittler, J.V \emph{Robust Detection of Lines Using the Progressive Probabilistic Hough Transforms}.\hskip
+  1em plus 0.5em minus 0.4em\relax OpenCV
+
 \end{thebibliography}
