@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import time
 from math import sin, cos, pi
 import numpy as np
+import cv2
 
 # Importing V-REP Module
 try:
@@ -277,6 +278,35 @@ if clientID!=-1:
         plt.plot(cloudPointXodo, cloudPointYodo,  'go', label = 'Mapa')
         plt.legend()
         plt.show()
+
+        fig = plt.figure()
+        plt.axis('off')
+        plt.scatter(laserXodo, laserYodo)
+
+        # plt.show()
+
+        fig.savefig('imgOdo.png')
+
+        img = cv2.imread('imgOdo.png')
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # #extraindo bordas
+        edges = cv2.Canny(gray, 200, 200)
+        cv2.imwrite('edgesOdo.png', edges)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+        # hough
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 5, 1, 1)
+
+        for line in lines:
+            coords = line[0]
+            x1 = coords[0]
+            y1 = coords[1]
+            x2 = coords[2]
+            y2 = coords[3]
+
+            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        cv2.imwrite('houghlinesOdo.png', img)
 
 else:
     print ('Failed connecting to remote API server')
