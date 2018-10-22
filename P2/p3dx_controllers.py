@@ -1,4 +1,4 @@
-# Importing general modules
+## Importing general modules
 import matplotlib.pyplot as plt
 import time
 from math import sin, cos, pi
